@@ -140,8 +140,8 @@ class _OtpPageState extends State<OtpPage> {
     if (err == null) {
       _startResendTimer();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
+        const SnackBar(
+          content: Row(
             children: [
               Icon(Icons.check_circle, color: Colors.white),
               SizedBox(width: 8),

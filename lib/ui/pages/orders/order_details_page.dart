@@ -84,15 +84,14 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         },
       };
 
-      debugPrint('Updating order with data: $updateData');
 
       final response = await ApiClient.put(
         '/orders/order/${widget.order['_id']}',
         updateData,
         token: auth.token,
       );
+      if (!mounted) return;
 
-      debugPrint('Update response: $response');
 
       if (response['success'] == true) {
         setState(() {
@@ -123,7 +122,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         );
       }
     } catch (e) {
-      debugPrint('Update error: $e');
+      if (!mounted) return;
       setState(() {
         isUpdating = false;
       });
@@ -380,7 +379,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _selectedPaymentStatus,
+                initialValue: _selectedPaymentStatus,
                 decoration: const InputDecoration(
                   labelText: 'Payment Status',
                   border: OutlineInputBorder(),
@@ -444,6 +443,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         '/orders/order/${widget.order['_id']}',
         token: auth.token,
       );
+      if (!mounted) return;
 
       if (response['success'] == true) {
         setState(() {
@@ -474,6 +474,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isDeleting = false;
       });

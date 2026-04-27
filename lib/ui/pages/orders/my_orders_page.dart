@@ -1,8 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../data/services/api_client.dart';
-import 'order_details_page.dart';
+import '../estimate/create_estimate_page.dart';
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -38,23 +46,15 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
-      debugPrint('Fetching orders for user: ${auth.userId}');
-      debugPrint('Token: ${auth.token}');
 
       final response = await ApiClient.get(
         '/orders/order/user/${auth.userId}',
         token: auth.token,
       );
 
-      debugPrint('API Response: $response');
-      debugPrint('Response status: ${response['status']}');
-      debugPrint('Response success: ${response['success']}');
-      debugPrint('Response body type: ${response['body'].runtimeType}');
 
       if (response['success'] == true && response['status'] == 200) {
         final responseBody = response['body'];
-        debugPrint('Response body type: ${responseBody.runtimeType}');
-        debugPrint('Response body: $responseBody');
 
         // Handle the API response - it's a direct array
         List<dynamic> ordersList = [];
@@ -77,7 +77,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             }
           }
         } catch (e) {
-          debugPrint('Error parsing response: $e');
         }
 
         setState(() {
@@ -85,7 +84,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
           isLoading = false;
         });
 
-        debugPrint('Orders loaded: ${orders.length}');
       } else {
         final errorMsg = response['body']?['message'] ??
             response['body']?.toString() ??
@@ -94,10 +92,8 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
           errorMessage = errorMsg;
           isLoading = false;
         });
-        debugPrint('Error response: $response');
       }
     } catch (e) {
-      debugPrint('Network error: $e');
       setState(() {
         errorMessage = 'Network error: ${e.toString()}';
         isLoading = false;
@@ -114,7 +110,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
-      debugPrint('Deleting order: $orderId');
 
       // Add DELETE method to ApiClient
       final response = await ApiClient.delete(
@@ -122,7 +117,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         token: auth.token,
       );
 
-      debugPrint('Delete response: $response');
 
       if (response['success'] == true) {
         setState(() {
@@ -158,7 +152,6 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         }
       }
     } catch (e) {
-      debugPrint('Delete error: $e');
       setState(() {
         errorMessage = 'Network error: ${e.toString()}';
         isLoading = false;
@@ -171,6 +164,282 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _updateOwnerDetails(
+    dynamic order, {
+    required String name,
+    required String address,
+  }) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final orderId = order['_id']?.toString();
+
+    if (orderId == null || orderId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final existingInputs = Map<String, dynamic>.from(order['inputs'] ?? {});
+      final updateData = {
+        'inputs': {
+          ...existingInputs,
+          'ownerDetais': {
+            'name': name.trim(),
+            'address': address.trim(),
+          },
+        },
+      };
+
+      final response = await ApiClient.put(
+        '/orders/order/$orderId',
+        updateData,
+        token: auth.token,
+      );
+
+      if (response['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Owner details updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        await _fetchOrders();
+      } else {
+        final errorMsg = response['body']?['message'] ??
+            response['body']?.toString() ??
+            'Failed to update owner details';
+        setState(() {
+          errorMessage = errorMsg;
+          isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Network error: ${e.toString()}';
+        isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Network error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _generateOrderEstimate(dynamic order) async {
+    final inputs = _asMap(order['inputs']);
+    final dimensions = _asMap(inputs['dimensions']);
+    final ownerDetails =
+        _asMap(inputs['ownerDetais'] ?? inputs['ownerDetails']);
+    final estimateId = inputs['estimateId']?.toString();
+
+    if (estimateId == null || estimateId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Estimate ID not found for this order'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return null;
+    }
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      final body = {
+        'estimateId': estimateId,
+        'dimensions': dimensions,
+        'ownerDetais': ownerDetails,
+        'sheetType': inputs['sheetType'],
+        'floorType': inputs['floorType'],
+        'totalArea': inputs['totalArea'],
+        'totalAmount': inputs['totalAmount'],
+      };
+
+      final response = await http
+          .post(
+            Uri.parse('${ApiClient.base}/estimate/generate'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (auth.userId != null) 'userId': auth.userId!,
+              if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 120));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['estimateId']?.toString() ?? estimateId;
+      }
+
+      var errorDetail = response.body;
+      try {
+        final errorJson = jsonDecode(response.body);
+        errorDetail =
+            errorJson['error'] ?? errorJson['message'] ?? response.body;
+      } catch (_) {}
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Generate failed: $errorDetail'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Generate timeout. Please try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Generate error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return {};
+  }
+
+  Future<void> _downloadOrderPdf(dynamic order) async {
+    final estimateId = await _generateOrderEstimate(order);
+    if (estimateId == null || estimateId.isEmpty) return;
+
+    await _downloadEstimatePdf(estimateId);
+  }
+
+  Future<void> _downloadEstimatePdf(String estimateId) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      final url = Uri.parse(
+        '${ApiClient.base}/estimate/generate/download/$estimateId',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (auth.userId != null) 'userid': auth.userId!,
+          if (auth.token != null) 'Authorization': 'Bearer ${auth.token}',
+        },
+      ).timeout(const Duration(seconds: 60));
+
+      if (response.statusCode == 200) {
+        final dir = await getApplicationDocumentsDirectory();
+        final filePath = '${dir.path}/estimate_$estimateId.pdf';
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        final result = await OpenFilex.open(filePath);
+
+        if (!mounted) return;
+
+        if (result.type == ResultType.done) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('PDF opened successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (result.type == ResultType.noAppToOpen) {
+          await Share.shareXFiles(
+            [XFile(filePath)],
+            text: 'Construction Estimate PDF',
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open PDF: ${result.message}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } else {
+        var errorDetail = response.body;
+        try {
+          final errorJson = jsonDecode(response.body);
+          errorDetail =
+              errorJson['error'] ?? errorJson['message'] ?? response.body;
+        } catch (_) {}
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $errorDetail'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download timeout. Please try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openPendingOrderForm(dynamic order) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateEstimatePage(initialOrder: order),
+      ),
+    );
+
+    if (mounted) {
+      _fetchOrders();
     }
   }
 
@@ -225,18 +494,18 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     }
 
     if (orders.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: 16),
+            Text(
               'No orders found',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'Your orders will appear here once you place them',
               style: TextStyle(color: Colors.grey),
             ),
@@ -252,27 +521,45 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         final order = orders[index];
         return _OrderCard(
           order: order,
+          onEdit: (name, address) => _updateOwnerDetails(
+            order,
+            name: name,
+            address: address,
+          ),
+          onDownload: () => _downloadOrderPdf(order),
+          onOpenPendingOrder: () => _openPendingOrderForm(order),
           onDelete: () => _deleteOrder(order['_id']),
-          onRefresh: _fetchOrders,
         );
       },
     );
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends StatefulWidget {
   final dynamic order;
+  final Future<void> Function(String name, String address) onEdit;
+  final Future<void> Function() onDownload;
+  final Future<void> Function() onOpenPendingOrder;
   final VoidCallback onDelete;
-  final VoidCallback onRefresh;
 
   const _OrderCard({
     required this.order,
+    required this.onEdit,
+    required this.onDownload,
+    required this.onOpenPendingOrder,
     required this.onDelete,
-    required this.onRefresh,
   });
 
   @override
+  State<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<_OrderCard> {
+  bool _isDownloading = false;
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final orderId = order['_id'] ?? 'Unknown';
     final status = order['status'] ?? 'Unknown';
     final createdAt = order['createdAt'] ?? '';
@@ -280,16 +567,24 @@ class _OrderCard extends StatelessWidget {
     final totalAmount = payment['amount'] ?? 0.0;
     final requestType = order['requestType'] ?? 'Unknown';
     final date = order['date'] ?? '';
+    final inputs = order['inputs'] ?? {};
+    final ownerDetails = _ownerDetails(inputs);
+    final ownerName = ownerDetails['name']?.toString() ?? 'Unknown owner';
+    final normalizedStatus = status.toString().toUpperCase();
+    final canDownload = normalizedStatus == 'PAID';
+    final isPending = normalizedStatus == 'PENDING';
 
     Color statusColor;
     IconData statusIcon;
 
-    switch (status.toLowerCase()) {
+    switch (status.toString().toLowerCase()) {
       case 'pending':
         statusColor = Colors.orange;
         statusIcon = Icons.pending;
         break;
       case 'completed':
+      case 'paid':
+      case 'success':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
         break;
@@ -318,7 +613,7 @@ class _OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Order #${orderId.toString().substring(0, 8).toUpperCase()}',
+                        'Order #${_shortId(orderId)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -330,6 +625,16 @@ class _OrderCard extends StatelessWidget {
                           fontSize: 12,
                           color: Colors.grey[600],
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        ownerName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -385,7 +690,7 @@ class _OrderCard extends StatelessWidget {
                 Icon(Icons.currency_rupee, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  'Total: ₹${totalAmount.toStringAsFixed(2)}',
+                  'Total: ${_formatAmount(totalAmount)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w500,
                     fontSize: 16,
@@ -394,25 +699,31 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => OrderDetailsPage(
-                          order: order,
-                          onOrderUpdated: onRefresh,
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text('View Details'),
+                OutlinedButton.icon(
+                  onPressed: isPending
+                      ? () => widget.onOpenPendingOrder()
+                      : () => _showEditDialog(context, ownerDetails),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Edit'),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
+                if (canDownload)
+                  OutlinedButton.icon(
+                    onPressed: _isDownloading ? null : _download,
+                    icon: _isDownloading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download, size: 18),
+                    label: const Text('Download'),
+                  ),
+                IconButton.filledTonal(
                   onPressed: () => _showDeleteDialog(context, orderId),
                   icon: const Icon(Icons.delete, color: Colors.red),
                   tooltip: 'Delete Order',
@@ -423,6 +734,136 @@ class _OrderCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _download() async {
+    setState(() {
+      _isDownloading = true;
+    });
+
+    await widget.onDownload();
+
+    if (mounted) {
+      setState(() {
+        _isDownloading = false;
+      });
+    }
+  }
+
+  String _shortId(dynamic value) {
+    final id = value?.toString() ?? 'Unknown';
+    final length = id.length < 8 ? id.length : 8;
+    return id.substring(0, length).toUpperCase();
+  }
+
+  String _formatAmount(dynamic value) {
+    final amount = value is num ? value : num.tryParse(value.toString()) ?? 0;
+    return 'Rs. ${amount.toStringAsFixed(2)}';
+  }
+
+  Map<String, dynamic> _ownerDetails(dynamic inputs) {
+    if (inputs is! Map) return {};
+
+    final details = inputs['ownerDetais'] ?? inputs['ownerDetails'];
+    if (details is Map<String, dynamic>) return details;
+    if (details is Map) return Map<String, dynamic>.from(details);
+
+    return {};
+  }
+
+  void _showEditDialog(
+    BuildContext context,
+    Map<String, dynamic> ownerDetails,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(
+      text: ownerDetails['name']?.toString() ?? '',
+    );
+    final addressController = TextEditingController(
+      text: ownerDetails['address']?.toString() ?? '',
+    );
+    var isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Edit Owner Details'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: addressController,
+                  decoration: const InputDecoration(
+                    labelText: 'Address',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                  minLines: 2,
+                  maxLines: 4,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter address';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() {
+                        isSaving = true;
+                      });
+                      await widget.onEdit(
+                        nameController.text,
+                        addressController.text,
+                      );
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      nameController.dispose();
+      addressController.dispose();
+    });
   }
 
   void _showDeleteDialog(BuildContext context, String orderId) {
@@ -439,7 +880,7 @@ class _OrderCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              onDelete();
+              widget.onDelete();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

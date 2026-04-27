@@ -109,7 +109,6 @@
 //   Future<void> _loadAuthToken() async {
 //     final prefs = await SharedPreferences.getInstance();
 //     _authToken = prefs.getString("auth_token");
-//     debugPrint(
 //         'Loaded auth token: ${_authToken != null ? "Found" : "Not found"}');
 //   }
 
@@ -492,9 +491,6 @@
 //     });
 
 //     try {
-//       debugPrint('═══════════════════════════════════════════');
-//       debugPrint('CREATING CASHFREE ORDER - START');
-//       debugPrint('═══════════════════════════════════════════');
 
 //       // Create order with estimateId as per your API
 //       final requestBody = {
@@ -503,9 +499,7 @@
 //         'estimateId': _estimateId,
 //       };
 
-//       debugPrint(
 //           'Request URL: https://estimate-pro-backend.onrender.com/payments/create-order');
-//       debugPrint('Request Body: ${jsonEncode(requestBody)}');
 
 //       final response = await http
 //           .post(
@@ -518,9 +512,6 @@
 //           )
 //           .timeout(const Duration(seconds: 60));
 
-//       debugPrint('Response Status: ${response.statusCode}');
-//       debugPrint('Response Body: ${response.body}');
-//       debugPrint('═══════════════════════════════════════════');
 
 //       if (!mounted) return;
 
@@ -530,7 +521,6 @@
 //         final orderId = data['orderId'];
 
 //         if (paymentSessionId == null || orderId == null) {
-//           debugPrint('ERROR: paymentSessionId or orderId is null in response');
 //           setState(() {
 //             _paymentError = 'Invalid response: missing payment details';
 //             _isPaymentProcessing = false;
@@ -543,11 +533,6 @@
 //           _orderId = orderId;
 //         });
 
-//         debugPrint('═══════════════════════════════════════════');
-//         debugPrint('ORDER CREATED SUCCESSFULLY');
-//         debugPrint('Order ID: $orderId');
-//         debugPrint('Payment Session ID: $paymentSessionId');
-//         debugPrint('═══════════════════════════════════════════');
 
 //         // Open Cashfree payment page in webview
 //         // _openCashfreePayment();
@@ -568,16 +553,13 @@
 
 //           // Set up callbacks
 //           cfPaymentGatewayService.setCallback((paymentResult) {
-//             debugPrint("Payment Result: $paymentResult");
 //             _verifyPayment();
 //           }, (error, errorMessage) {
-//             debugPrint("Payment Error: $error - $errorMessage");
 //           });
 
 //           // Start payment
 //           await cfPaymentGatewayService.doPayment(cfDropCheckoutPayment);
 //         } catch (e) {
-//           debugPrint("Payment Error: $e");
 //         }
 //       } else {
 //         // Error response
@@ -587,7 +569,6 @@
 //           errorMsg = errorData['message'] ?? errorData['error'] ?? errorMsg;
 //         } catch (_) {}
 
-//         debugPrint('ERROR: $errorMsg');
 
 //         setState(() {
 //           _paymentError = errorMsg;
@@ -595,14 +576,12 @@
 //         });
 //       }
 //     } on TimeoutException {
-//       debugPrint('ERROR: Request timeout');
 //       if (!mounted) return;
 //       setState(() {
 //         _paymentError = 'Request timeout. Server may be starting up.';
 //         _isPaymentProcessing = false;
 //       });
 //     } catch (e) {
-//       debugPrint('ERROR: $e');
 //       if (!mounted) return;
 //       setState(() {
 //         _paymentError = 'Error: $e';
@@ -621,7 +600,6 @@
 //       // Only remove obvious duplicates, keep the core session ID intact
 //       if (cleanSessionId.contains('paymentpayment')) {
 //         cleanSessionId = cleanSessionId.replaceAll('paymentpayment', 'payment');
-//         debugPrint('Fixed paymentpayment duplication');
 //       }
 
 //       // Remove trailing 'payment' only if it's clearly a suffix
@@ -629,19 +607,14 @@
 //           cleanSessionId.length > 'payment'.length + 10) {
 //         cleanSessionId = cleanSessionId.substring(
 //             0, cleanSessionId.length - 'payment'.length);
-//         debugPrint('Removed trailing payment text');
 //       }
 
 //       // Final trim
 //       cleanSessionId = cleanSessionId.trim();
 
-//       debugPrint('Original Payment Session ID: $_paymentSessionId');
-//       debugPrint('Cleaned Payment Session ID: $cleanSessionId');
-//       debugPrint('Order ID: $_orderId');
 
 //       // More lenient validation - check if it looks like a valid ID
 //       if (cleanSessionId.isEmpty || cleanSessionId.length < 10) {
-//         debugPrint(
 //             'ERROR: Payment session ID too short or empty: $cleanSessionId');
 //         setState(() {
 //           _paymentError = 'Invalid payment session ID';
@@ -664,8 +637,6 @@
 //           final uri = Uri.parse(url);
 //           final canLaunch = await canLaunchUrl(uri);
 
-//           debugPrint('Trying URL: $url');
-//           debugPrint('Can launch: $canLaunch');
 
 //           if (canLaunch) {
 //             await launchUrl(
@@ -673,11 +644,9 @@
 //               mode: LaunchMode.externalApplication,
 //             );
 //             launched = true;
-//             debugPrint('Successfully launched: $url');
 //             break;
 //           }
 //         } catch (e) {
-//           debugPrint('Error launching $url: $e');
 //           continue;
 //         }
 //       }
@@ -693,11 +662,9 @@
 //               'Could not launch payment page. Please check your session ID: $cleanSessionId';
 //           _isPaymentProcessing = false;
 //         });
-//         debugPrint(
 //             'ERROR: Failed to launch any payment URL for session ID: $cleanSessionId');
 //       }
 //     } catch (e) {
-//       debugPrint('Error launching payment: $e');
 //       if (!mounted) return;
 //       setState(() {
 //         _paymentError = 'Error launching payment: $e';
@@ -747,10 +714,6 @@
 //     });
 
 //     try {
-//       debugPrint('═══════════════════════════════════════════');
-//       debugPrint('VERIFYING PAYMENT');
-//       debugPrint('Order ID: $_orderId');
-//       debugPrint('═══════════════════════════════════════════');
 
 //       final response = await http.get(
 //         Uri.parse(
@@ -760,8 +723,6 @@
 //         },
 //       ).timeout(const Duration(seconds: 30));
 
-//       debugPrint('Verify Response Status: ${response.statusCode}');
-//       debugPrint('Verify Response Body: ${response.body}');
 
 //       if (!mounted) return;
 
@@ -809,7 +770,6 @@
 //         });
 //       }
 //     } catch (e) {
-//       debugPrint('Verification Error: $e');
 //       if (!mounted) return;
 //       setState(() {
 //         _paymentError = 'Error verifying payment: $e';
@@ -850,10 +810,6 @@
 //         'totalAmount': _totalAmount,
 //       };
 
-//       debugPrint('═══════════════════════════════════════════');
-//       debugPrint('GENERATE ESTIMATE - START');
-//       debugPrint('Request Body: ${jsonEncode(body)}');
-//       debugPrint('═══════════════════════════════════════════');
 
 //       if (!mounted) return;
 //       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -872,9 +828,6 @@
 //           )
 //           .timeout(const Duration(seconds: 120));
 
-//       debugPrint('Response Status: ${response.statusCode}');
-//       debugPrint('Response Body: ${response.body}');
-//       debugPrint('═══════════════════════════════════════════');
 
 //       if (!mounted) return;
 
@@ -914,7 +867,6 @@
 //         _isGenerating = false;
 //       });
 //     } catch (e) {
-//       debugPrint('Generate Error: $e');
 //       if (!mounted) return;
 
 //       setState(() {
@@ -948,13 +900,11 @@
 //     try {
 //       final url =
 //           'https://estimate-pro-backend.onrender.com/estimate/generate/download/$_estimateId';
-//       debugPrint('Download URL: $url');
 
 //       if (!mounted) return;
 //       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
 //       // Download PDF with Authorization header
-//       debugPrint(authProvider.token);
 
 //       final response = await http.get(
 //         Uri.parse(url),
@@ -978,7 +928,6 @@
 //         final file = File(filePath);
 //         await file.writeAsBytes(response.bodyBytes);
 
-//         debugPrint('PDF saved to: $filePath');
 
 //         // Open the PDF file
 //         final fileUri = Uri.file(filePath);
@@ -999,7 +948,6 @@
 //               );
 //             }
 //           } catch (e) {
-//             debugPrint('Launch Error: $e');
 //             if (mounted) {
 //               ScaffoldMessenger.of(context).showSnackBar(
 //                 SnackBar(
@@ -1022,7 +970,6 @@
 //               );
 //             }
 //           } catch (e) {
-//             debugPrint('Share Error: $e');
 //             if (mounted) {
 //               ScaffoldMessenger.of(context).showSnackBar(
 //                 SnackBar(
@@ -1041,7 +988,6 @@
 //           });
 //         }
 //       } else {
-//         debugPrint(
 //             'Download failed: ${response.statusCode} - ${response.body}');
 //         if (mounted) {
 //           ScaffoldMessenger.of(context).showSnackBar(
@@ -1058,7 +1004,6 @@
 //         }
 //       }
 //     } catch (e) {
-//       debugPrint('Download Error: $e');
 //       if (!mounted) return;
 
 //       // Store context reference to prevent race condition
@@ -2191,7 +2136,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -2201,7 +2145,7 @@ import '../../../providers/auth_provider.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
 
 /// Floor data model
 class FloorData {
@@ -2224,7 +2168,12 @@ class FloorData {
 
 /// Main Create Estimate Page
 class CreateEstimatePage extends StatefulWidget {
-  const CreateEstimatePage({super.key});
+  final dynamic initialOrder;
+
+  const CreateEstimatePage({
+    super.key,
+    this.initialOrder,
+  });
 
   @override
   State<CreateEstimatePage> createState() => _CreateEstimatePageState();
@@ -2251,14 +2200,18 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
   // Owner data
   final _ownerNameCtrl = TextEditingController();
+  final _ownerFirstNameCtrl = TextEditingController();
+  final _ownerRelativeNameCtrl = TextEditingController();
+  final _ownerSurnameCtrl = TextEditingController();
   final _ownerAddressCtrl = TextEditingController();
   final _ownerPhoneCtrl = TextEditingController();
+  String _ownerRelation = 'S/o';
 
   // Total Amount field
   final _totalAmountCtrl = TextEditingController();
 
   // Category only (no interior work)
-  String _selectedCategory = 'A';
+  final String _selectedCategory = 'A';
 
   // Form keys
   final _propertyFormKey = GlobalKey<FormState>();
@@ -2269,6 +2222,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   bool _isDownloading = false;
   bool _isPaymentProcessing = false;
   String? _estimateId;
+  String? _existingEstimateId;
   String? _generateError;
 
   // Payment States
@@ -2276,7 +2230,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   String? _paymentId;
   String? _paymentError;
   String? _orderId;
-  String? _paymentSessionId;
 
   // Auth token (kept for future use if needed)
   String? _authToken;
@@ -2284,19 +2237,67 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   // Payment amount
   static const int _basePaymentAmount = 500;
 
+  bool get _isOrderReviewMode => widget.initialOrder != null;
+
   @override
   void initState() {
     super.initState();
-    _addFloor(0);
+    if (_isOrderReviewMode) {
+      _prefillFromOrder(widget.initialOrder);
+    } else {
+      _addFloor(0);
+    }
     _loadAuthToken();
     _initCashfree();
+  }
+
+  void _prefillFromOrder(dynamic order) {
+    final inputs = _asMap(order['inputs']);
+    final dimensions = _asMap(inputs['dimensions']);
+    final ownerDetails =
+        _asMap(inputs['ownerDetais'] ?? inputs['ownerDetails']);
+
+    _existingEstimateId = inputs['estimateId']?.toString();
+    _lengthCtrl.text = dimensions['length']?.toString() ?? '';
+    _widthCtrl.text = dimensions['width']?.toString() ?? '';
+    _ownerNameCtrl.text = ownerDetails['name']?.toString() ?? '';
+    _ownerFirstNameCtrl.text = _ownerNameCtrl.text;
+    _ownerAddressCtrl.text = ownerDetails['address']?.toString() ?? '';
+    _totalAmountCtrl.text = inputs['totalAmount']?.toString() ?? '';
+
+    for (final option in _floorOptions) {
+      final key = option['key']!;
+      final area = dimensions[key];
+      if (area == null) continue;
+
+      final areaValue = double.tryParse(area.toString()) ?? 0;
+      final floor = FloorData(
+        floorType: option['type']!,
+        floorKey: key,
+      );
+      floor.builtUpArea = areaValue;
+      floor.areaCtrl.text = area.toString();
+      _floors.add(floor);
+    }
+
+    if (_floors.isEmpty) {
+      final floor = FloorData(
+        floorType: _floorOptions.first['type']!,
+        floorKey: _floorOptions.first['key']!,
+      );
+      _floors.add(floor);
+    }
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return {};
   }
 
   Future<void> _loadAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
     _authToken = prefs.getString("auth_token");
-    debugPrint(
-        'Loaded auth token: ${_authToken != null ? "Found" : "Not found"}');
   }
 
   void _initCashfree() {
@@ -2312,6 +2313,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
       floor.dispose();
     }
     _ownerNameCtrl.dispose();
+    _ownerFirstNameCtrl.dispose();
+    _ownerRelativeNameCtrl.dispose();
+    _ownerSurnameCtrl.dispose();
     _ownerAddressCtrl.dispose();
     _ownerPhoneCtrl.dispose();
     super.dispose();
@@ -2330,20 +2334,42 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
       return 'Enter a valid amount';
     }
 
-    // Minimum 10 lakh (1,000,000)
-    if (amount < 1000000) {
-      return 'Amount must be at least ₹10,00,000';
+    if (_minimumTotalAmount <= 0 || _maximumTotalAmount <= 0) {
+      return 'Enter built-up area first';
     }
 
-    // Maximum 50 lakh (5,000,000)
-    if (amount > 5000000) {
-      return 'Amount cannot exceed ₹50,00,000';
+    if (amount < _minimumTotalAmount) {
+      return 'Amount must be at least Rs. ${_formatNumber(_minimumTotalAmount)}';
+    }
+
+    if (amount > _maximumTotalAmount) {
+      return 'Amount cannot exceed Rs. ${_formatNumber(_maximumTotalAmount)}';
     }
 
     return null;
   }
 
   double get _totalAmount => double.tryParse(_totalAmountCtrl.text) ?? 0;
+
+  double get _minimumTotalAmount => _totalArea * 1000;
+
+  double get _maximumTotalAmount => _totalArea * 2600;
+
+  bool get _isTotalAmountInRange =>
+      _totalAmount >= _minimumTotalAmount && _totalAmount <= _maximumTotalAmount;
+
+  void _syncOwnerName() {
+    if (_isOrderReviewMode) return;
+
+    final parts = [
+      _ownerFirstNameCtrl.text.trim(),
+      _ownerRelation,
+      _ownerRelativeNameCtrl.text.trim(),
+      _ownerSurnameCtrl.text.trim(),
+    ].where((part) => part.isNotEmpty).join(' ');
+
+    _ownerNameCtrl.text = parts;
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // CALCULATIONS
@@ -2638,9 +2664,24 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
   List<String> _validateOwnerStep() {
     List<String> errors = [];
+    _syncOwnerName();
 
-    if (_ownerNameCtrl.text.trim().length < 3) {
-      errors.add('Enter valid name (min 3 characters)');
+    if (_isOrderReviewMode) {
+      if (_ownerNameCtrl.text.trim().length < 3) {
+        errors.add('Enter valid name (min 3 characters)');
+      }
+    } else {
+      if (_ownerFirstNameCtrl.text.trim().length < 3) {
+        errors.add('Enter valid name (min 3 characters)');
+      }
+
+      if (_ownerRelativeNameCtrl.text.trim().length < 2) {
+        errors.add('Enter valid father/husband name');
+      }
+
+      if (_ownerSurnameCtrl.text.trim().length < 2) {
+        errors.add('Enter valid surname');
+      }
     }
 
     final phoneError = _validatePhone(_ownerPhoneCtrl.text);
@@ -2698,9 +2739,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     });
 
     try {
-      debugPrint('═══════════════════════════════════════════');
-      debugPrint('CREATING CASHFREE ORDER - START');
-      debugPrint('═══════════════════════════════════════════');
 
       final requestBody = {
         'amount': 1,
@@ -2708,9 +2746,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         'estimateId': _estimateId,
       };
 
-      debugPrint(
-          'Request URL: https://estimate-pro-backend.onrender.com/payments/create-order');
-      debugPrint('Request Body: ${jsonEncode(requestBody)}');
 
       final response = await http
           .post(
@@ -2723,9 +2758,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           )
           .timeout(const Duration(seconds: 60));
 
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-      debugPrint('═══════════════════════════════════════════');
 
       if (!mounted) return;
 
@@ -2735,7 +2767,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         final orderId = data['orderId'];
 
         if (paymentSessionId == null || orderId == null) {
-          debugPrint('ERROR: paymentSessionId or orderId is null in response');
           setState(() {
             _paymentError = 'Invalid response: missing payment details';
             _isPaymentProcessing = false;
@@ -2744,13 +2775,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         }
 
         setState(() {
-          _paymentSessionId = paymentSessionId;
           _orderId = orderId;
         });
 
-        debugPrint('ORDER CREATED SUCCESSFULLY');
-        debugPrint('Order ID: $orderId');
-        debugPrint('Payment Session ID: $paymentSessionId');
 
         try {
           var cfSession = CFSessionBuilder()
@@ -2759,27 +2786,24 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               .setEnvironment(CFEnvironment.SANDBOX)
               .build();
 
-          var cfDropCheckoutPayment =
-              CFDropCheckoutPaymentBuilder().setSession(cfSession).build();
+          var cfWebCheckoutPayment =
+              CFWebCheckoutPaymentBuilder().setSession(cfSession).build();
 
           var cfPaymentGatewayService = CFPaymentGatewayService();
 
           cfPaymentGatewayService.setCallback((paymentResult) {
-            debugPrint("Payment Result: $paymentResult");
             _verifyPayment();
           }, (error, errorMessage) {
-            debugPrint("Payment Error: $error - $errorMessage");
             if (mounted) {
               setState(() {
-                _paymentError = errorMessage ?? 'Payment failed';
+                _paymentError = errorMessage;
                 _isPaymentProcessing = false;
               });
             }
           });
 
-          await cfPaymentGatewayService.doPayment(cfDropCheckoutPayment);
+          await cfPaymentGatewayService.doPayment(cfWebCheckoutPayment);
         } catch (e) {
-          debugPrint("Cashfree SDK Error: $e");
           if (mounted) {
             setState(() {
               _paymentError = 'Payment error: $e';
@@ -2794,7 +2818,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           errorMsg = errorData['message'] ?? errorData['error'] ?? errorMsg;
         } catch (_) {}
 
-        debugPrint('ERROR: $errorMsg');
 
         setState(() {
           _paymentError = errorMsg;
@@ -2802,122 +2825,18 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         });
       }
     } on TimeoutException {
-      debugPrint('ERROR: Request timeout');
       if (!mounted) return;
       setState(() {
         _paymentError = 'Request timeout. Server may be starting up.';
         _isPaymentProcessing = false;
       });
     } catch (e) {
-      debugPrint('ERROR: $e');
       if (!mounted) return;
       setState(() {
         _paymentError = 'Error: $e';
         _isPaymentProcessing = false;
       });
     }
-  }
-
-  Future<void> _openCashfreePayment() async {
-    if (_paymentSessionId == null) return;
-
-    try {
-      String cleanSessionId = _paymentSessionId!.trim();
-
-      if (cleanSessionId.contains('paymentpayment')) {
-        cleanSessionId = cleanSessionId.replaceAll('paymentpayment', 'payment');
-      }
-
-      if (cleanSessionId.endsWith('payment') &&
-          cleanSessionId.length > 'payment'.length + 10) {
-        cleanSessionId = cleanSessionId.substring(
-            0, cleanSessionId.length - 'payment'.length);
-      }
-
-      cleanSessionId = cleanSessionId.trim();
-
-      if (cleanSessionId.isEmpty || cleanSessionId.length < 10) {
-        setState(() {
-          _paymentError = 'Invalid payment session ID';
-          _isPaymentProcessing = false;
-        });
-        return;
-      }
-
-      final urls = [
-        'https://payments.cashfree.com/links/$cleanSessionId',
-        'https://payments.cashfree.com/order/$cleanSessionId',
-        'https://payments.cashfree.com/checkout/$cleanSessionId',
-      ];
-
-      bool launched = false;
-
-      for (final url in urls) {
-        try {
-          final uri = Uri.parse(url);
-          final canLaunch = await canLaunchUrl(uri);
-          if (canLaunch) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-            launched = true;
-            break;
-          }
-        } catch (e) {
-          debugPrint('Error launching $url: $e');
-          continue;
-        }
-      }
-
-      if (!mounted) return;
-
-      if (launched) {
-        _showPaymentVerificationDialog();
-      } else {
-        setState(() {
-          _paymentError = 'Could not launch payment page.';
-          _isPaymentProcessing = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error launching payment: $e');
-      if (!mounted) return;
-      setState(() {
-        _paymentError = 'Error launching payment: $e';
-        _isPaymentProcessing = false;
-      });
-    }
-  }
-
-  void _showPaymentVerificationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Payment in Progress'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            const Text('Please complete the payment in the browser.'),
-            const SizedBox(height: 8),
-            Text('Order ID: ${_orderId ?? ''}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _verifyPayment();
-            },
-            child: const Text('I Have Paid'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _verifyPayment() async {
@@ -2928,7 +2847,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     });
 
     try {
-      debugPrint('VERIFYING PAYMENT - Order ID: $_orderId');
 
       final response = await http.get(
         Uri.parse(
@@ -2938,8 +2856,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         },
       ).timeout(const Duration(seconds: 30));
 
-      debugPrint('Verify Response Status: ${response.statusCode}');
-      debugPrint('Verify Response Body: ${response.body}');
 
       if (!mounted) return;
 
@@ -2986,7 +2902,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         });
       }
     } catch (e) {
-      debugPrint('Verification Error: $e');
       if (!mounted) return;
       setState(() {
         _paymentError = 'Error verifying payment: $e';
@@ -3010,12 +2925,14 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     });
 
     try {
+      _syncOwnerName();
       Map<String, dynamic> dimensions = {'length': _length, 'width': _width};
       for (var floor in _floors) {
         dimensions[floor.floorKey] = floor.builtUpArea;
       }
 
       final body = {
+        if (_existingEstimateId != null) 'estimateId': _existingEstimateId,
         'dimensions': dimensions,
         'ownerDetais': {
           'name': _ownerNameCtrl.text.trim(),
@@ -3027,10 +2944,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         'totalAmount': _totalAmount,
       };
 
-      debugPrint('═══════════════════════════════════════════');
-      debugPrint('GENERATE ESTIMATE - START');
-      debugPrint('Request Body: ${jsonEncode(body)}');
-      debugPrint('═══════════════════════════════════════════');
 
       if (!mounted) return;
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -3049,8 +2962,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           )
           .timeout(const Duration(seconds: 120));
 
-      debugPrint('Response Status: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
 
       if (!mounted) return;
 
@@ -3090,7 +3001,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         _isGenerating = false;
       });
     } catch (e) {
-      debugPrint('Generate Error: $e');
       if (!mounted) return;
       setState(() {
         _generateError = 'Error: $e';
@@ -3123,11 +3033,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     try {
       final url =
           'https://estimate-pro-backend.onrender.com/estimate/generate/download/$_estimateId';
-      debugPrint('Download URL: $url');
 
       if (!mounted) return;
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      debugPrint('Token: ${authProvider.token}');
 
       final response = await http.get(
         Uri.parse(url),
@@ -3141,9 +3049,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
       if (!mounted) return;
 
-      debugPrint('Download status: ${response.statusCode}');
-      debugPrint('Content-Type: ${response.headers['content-type']}');
-      debugPrint('Body bytes length: ${response.bodyBytes.length}');
 
       if (response.statusCode == 200) {
         // ✅ Use getApplicationDocumentsDirectory — safe for FileProvider on Android
@@ -3153,11 +3058,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
-        debugPrint('PDF saved to: $filePath');
 
         // ✅ Use OpenFilex — handles Android FileProvider automatically
         final result = await OpenFilex.open(filePath);
-        debugPrint('OpenFilex result: ${result.type} - ${result.message}');
 
         if (!mounted) return;
 
@@ -3171,14 +3074,12 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           );
         } else if (result.type == ResultType.noAppToOpen) {
           // No PDF viewer installed — fallback to share sheet
-          debugPrint('No PDF viewer found, falling back to share');
           try {
             await Share.shareXFiles(
               [XFile(filePath)],
               text: 'Construction Estimate PDF',
             );
           } catch (shareErr) {
-            debugPrint('Share Error: $shareErr');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -3191,7 +3092,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           }
         } else {
           // Other errors (permissionDenied, error, etc.)
-          debugPrint('OpenFilex error: ${result.message}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -3203,8 +3103,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         }
       } else {
         // HTTP error from server
-        debugPrint(
-            'Download failed: ${response.statusCode} - ${response.body}');
 
         String errorDetail = response.body;
         try {
@@ -3225,7 +3123,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         }
       }
     } on TimeoutException {
-      debugPrint('Download timeout');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -3235,7 +3132,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         );
       }
     } catch (e) {
-      debugPrint('Download Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3397,6 +3293,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                       Expanded(
                         child: TextFormField(
                           controller: _lengthCtrl,
+                          enabled: !_isOrderReviewMode,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           inputFormatters: [
@@ -3420,6 +3317,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                       Expanded(
                         child: TextFormField(
                           controller: _widthCtrl,
+                          enabled: !_isOrderReviewMode,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           inputFormatters: [
@@ -3469,7 +3367,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
             children: [
               const Text('Floor-wise Built-up Area',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              if (_canAddMoreFloors && _nextFloorIndex != null)
+              if (!_isOrderReviewMode &&
+                  _canAddMoreFloors &&
+                  _nextFloorIndex != null)
                 TextButton.icon(
                   onPressed: () => _addFloor(_nextFloorIndex!),
                   icon: const Icon(Icons.add, size: 18),
@@ -3534,6 +3434,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: floor.areaCtrl,
+                    enabled: !_isOrderReviewMode,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -3559,7 +3460,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                 ],
               ),
             ),
-            if (!isGround)
+            if (!_isOrderReviewMode && !isGround)
               IconButton(
                   onPressed: () => _removeFloor(index),
                   icon: const Icon(Icons.close, color: Colors.red, size: 20)),
@@ -3581,37 +3482,103 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           const Text('Owner Details',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _ownerNameCtrl,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Owner Name *',
-              hintText: 'e.g., Mr. Sufiyan Khan S/o Mr. Riyaz Khan',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
+          if (_isOrderReviewMode) ...[
+            TextFormField(
+              controller: _ownerNameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().length < 3)
+                  ? 'Enter valid name (min 3 chars)'
+                  : null,
             ),
-            validator: (v) => (v == null || v.trim().length < 3)
-                ? 'Enter valid name (min 3 chars)'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _ownerPhoneCtrl,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Mobile Number',
-              hintText: '9876543210',
-              prefixIcon: Icon(Icons.phone_outlined),
-              prefixText: '+91 ',
-              border: OutlineInputBorder(),
-              helperText: '10 digit Indian mobile number (starts with 6-9)',
+          ] else ...[
+            TextFormField(
+              controller: _ownerFirstNameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                hintText: 'e.g., Sufiyan',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().length < 3)
+                  ? 'Enter valid name (min 3 chars)'
+                  : null,
+              onChanged: (_) => _syncOwnerName(),
             ),
-            validator: _validatePhone,
-          ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _ownerRelation,
+              decoration: const InputDecoration(
+                labelText: 'Relation *',
+                prefixIcon: Icon(Icons.family_restroom_outlined),
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'S/o', child: Text('S/o = Son of')),
+                DropdownMenuItem(
+                    value: 'D/o', child: Text('D/o = Daughter of')),
+                DropdownMenuItem(value: 'W/o', child: Text('W/o = Wife of')),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _ownerRelation = value);
+                _syncOwnerName();
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ownerRelativeNameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                hintText: 'e.g., Riyaz',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().length < 2)
+                  ? 'Enter valid name'
+                  : null,
+              onChanged: (_) => _syncOwnerName(),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ownerSurnameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Surname *',
+                hintText: 'e.g., Khan',
+                prefixIcon: Icon(Icons.badge_outlined),
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().length < 2)
+                  ? 'Enter valid surname'
+                  : null,
+              onChanged: (_) => _syncOwnerName(),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ownerPhoneCtrl,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Mobile Number',
+                hintText: '9876543210',
+                prefixIcon: Icon(Icons.phone_outlined),
+                prefixText: '+91 ',
+                border: OutlineInputBorder(),
+                helperText: '10 digit Indian mobile number (starts with 6-9)',
+              ),
+              validator: _validatePhone,
+            ),
+          ],
           const SizedBox(height: 16),
           TextFormField(
             controller: _ownerAddressCtrl,
@@ -3662,19 +3629,22 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _totalAmountCtrl,
+                    enabled: !_isOrderReviewMode,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
                     ],
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Total Amount *',
-                      hintText: 'Enter amount between ₹10,00,000 - ₹50,00,000',
-                      prefixIcon: Icon(Icons.currency_rupee_outlined),
-                      prefixText: '₹ ',
-                      border: OutlineInputBorder(),
-                      helperText: 'Minimum: ₹10,00,000 | Maximum: ₹50,00,000',
-                      helperStyle: TextStyle(color: Colors.green),
+                      hintText:
+                          'Enter amount between Rs. ${_formatNumber(_minimumTotalAmount)} - Rs. ${_formatNumber(_maximumTotalAmount)}',
+                      prefixIcon: const Icon(Icons.currency_rupee_outlined),
+                      prefixText: 'Rs. ',
+                      border: const OutlineInputBorder(),
+                      helperText:
+                          'Minimum: Rs. ${_formatNumber(_minimumTotalAmount)} | Maximum: Rs. ${_formatNumber(_maximumTotalAmount)}',
+                      helperStyle: const TextStyle(color: Colors.green),
                     ),
                     validator: _validateTotalAmount,
                     onChanged: (_) => setState(() {}),
@@ -3684,26 +3654,23 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color:
-                            _totalAmount >= 1000000 && _totalAmount <= 5000000
-                                ? Colors.green.shade50
-                                : Colors.red.shade50,
+                        color: _isTotalAmountInRange
+                            ? Colors.green.shade50
+                            : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color:
-                              _totalAmount >= 1000000 && _totalAmount <= 5000000
-                                  ? Colors.green.shade200
-                                  : Colors.red.shade200,
+                          color: _isTotalAmountInRange
+                              ? Colors.green.shade200
+                              : Colors.red.shade200,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            _totalAmount >= 1000000 && _totalAmount <= 5000000
+                            _isTotalAmountInRange
                                 ? Icons.check_circle_outline
                                 : Icons.error_outline,
-                            color: _totalAmount >= 1000000 &&
-                                    _totalAmount <= 5000000
+                            color: _isTotalAmountInRange
                                 ? Colors.green.shade700
                                 : Colors.red.shade700,
                             size: 18,
@@ -3711,12 +3678,11 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              _totalAmount >= 1000000 && _totalAmount <= 5000000
-                                  ? 'Valid amount: ₹${_formatNumber(_totalAmount)}'
-                                  : 'Amount must be between ₹10,00,000 - ₹50,00,000',
+                              _isTotalAmountInRange
+                                  ? 'Valid amount: Rs. ${_formatNumber(_totalAmount)}'
+                                  : 'Amount must be between Rs. ${_formatNumber(_minimumTotalAmount)} - Rs. ${_formatNumber(_maximumTotalAmount)}',
                               style: TextStyle(
-                                color: _totalAmount >= 1000000 &&
-                                        _totalAmount <= 5000000
+                                color: _isTotalAmountInRange
                                     ? Colors.green.shade700
                                     : Colors.red.shade700,
                                 fontWeight: FontWeight.w500,
@@ -3789,29 +3755,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
             _reviewRow('Amount', '₹${_formatNumber(_totalAmount)}',
                 isBold: true, color: Colors.green),
           ],
-        ),
-
-        const SizedBox(height: 16),
-
-        const Text('Select Category',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        _buildCategoryCard(
-          'A',
-          'Premium Construction',
-          '₹1,800/sqft',
-          'High-quality materials\nPremium finishes & fittings\nBetter structural design',
-          Colors.amber,
-          Icons.star,
-        ),
-        const SizedBox(height: 10),
-        _buildCategoryCard(
-          'B',
-          'Standard Construction',
-          '₹1,500/sqft',
-          'Good quality materials\nStandard finishes\nCost-effective option',
-          Colors.blue,
-          Icons.apartment,
         ),
 
         const SizedBox(height: 20),
@@ -3918,79 +3861,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard(String cat, String title, String rate,
-      String description, Color color, IconData icon) {
-    final isSelected = _selectedCategory == cat;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = cat),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isSelected ? color : Colors.grey.shade300,
-              width: isSelected ? 2 : 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: color, borderRadius: BorderRadius.circular(12)),
-                    child: Text(rate,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(description,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          height: 1.3)),
-                ],
-              ),
-            ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? color : Colors.grey.shade400,
-                  width: 2,
-                ),
-                color: isSelected ? color : Colors.transparent,
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -4112,30 +3982,30 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
 
-          Card(
+          const Card(
             elevation: 2,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('PDF Download Fee',
+                      Text('PDF Download Fee',
                           style: TextStyle(fontSize: 16)),
                       Text(
                         '₹$_basePaymentAmount',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.green),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Pay ₹$_basePaymentAmount to download your estimate PDF',
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ],
               ),

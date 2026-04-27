@@ -56,7 +56,6 @@ class AuthProvider extends ChangeNotifier {
     verifying = false;
     notifyListeners();
 
-    debugPrint("Verify OTP Response: $res");
 
     // Check if API call was successful
     if (res["success"] == true || res["body"]?["success"] == true) {
@@ -81,10 +80,6 @@ class AuthProvider extends ChangeNotifier {
         }
       }
       
-      debugPrint("Extracted token: ${extractedToken != null ? 'Found' : 'Not found'}");
-      debugPrint("Extracted userId: $extractedUserId");
-      debugPrint("Extracted email: $extractedEmail");
-      debugPrint("Is verified: $extractedIsVerified");
       
       if (extractedToken != null && extractedUserId != null) {
         final prefs = await SharedPreferences.getInstance();
@@ -103,7 +98,6 @@ class AuthProvider extends ChangeNotifier {
         ApiService.setAuthToken(token);
         
         notifyListeners();
-        debugPrint("Auth data saved successfully");
         return null;
       }
       return "Token or User ID missing in response";
@@ -146,7 +140,6 @@ class AuthProvider extends ChangeNotifier {
       // For now, we'll just check if token exists
       return token != null && userId != null;
     } catch (e) {
-      debugPrint("Token validation error: $e");
       return false;
     }
   }

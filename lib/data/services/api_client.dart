@@ -9,7 +9,6 @@
 //   static Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body, {String? token}) async {
 //     try {
 //       final url = Uri.parse("$base$endpoint");
-//       debugPrint("API POST: $url");
 
 //       final headers = {
 //         "Content-Type": "application/json",
@@ -28,7 +27,6 @@
 //     } on TimeoutException {
 //       throw TimeoutException("timeout");
 //     } catch (e) {
-//       debugPrint("API RAW ERROR: $e");
 //       return {"status": 0, "body": {"message": "Network Error"}, "success": false};
 //     }
 //   }
@@ -38,10 +36,8 @@
 //       String endpoint, Map<String, dynamic> body) async {
 //     for (int i = 1; i <= 3; i++) {
 //       try {
-//         debugPrint("Attempt $i");
 //         return await post(endpoint, body);
 //       } on TimeoutException {
-//         debugPrint("Timeout attempt $i, waiting 10 sec...");
 //         await Future.delayed(const Duration(seconds: 10));
 //       }
 //     }
@@ -75,7 +71,6 @@ class ApiClient {
     String? userId,
   }) async {
     final url = Uri.parse("$base$endpoint"); // ← fixed: added missing "
-    debugPrint("API POST: $url");
 
     try {
       final headers = {
@@ -112,7 +107,6 @@ class ApiClient {
         "success": false,
       };
     } catch (e) {
-      debugPrint("API ERROR: $e");
       return {
         "status": 0,
         "body": {"message": "Network error"},
@@ -133,7 +127,6 @@ class ApiClient {
   }) async {
     for (int i = 1; i <= maxAttempts; i++) {
       try {
-        debugPrint("Attempt $i/$maxAttempts");
         final result = await post(endpoint, body, token: token, userId: userId);
 
         // If we got any HTTP status code (even error), stop retrying
@@ -141,15 +134,12 @@ class ApiClient {
           return result;
         }
       } on TimeoutException {
-        debugPrint("Timeout on attempt $i");
       } catch (e) {
-        debugPrint("Error on attempt $i: $e");
       }
 
       // Wait before next attempt (except after the last one)
       if (i < maxAttempts) {
         final waitSeconds = [15, 30, 45, 60][i - 1];
-        debugPrint("Waiting $waitSeconds seconds before next try...");
         await Future.delayed(Duration(seconds: waitSeconds));
       }
     }
@@ -172,7 +162,6 @@ class ApiClient {
     String? token,
   }) async {
     final url = Uri.parse("$base$endpoint"); // ← fixed: added missing "
-    debugPrint("API GET: $url");
 
     final headers = {
       "User-Agent": _userAgent,
@@ -189,8 +178,6 @@ class ApiClient {
         try {
           decodedBody = jsonDecode(response.body);
         } catch (e) {
-          debugPrint("JSON Decode Error: $e");
-          debugPrint("Response body: ${response.body}");
           decodedBody = {
             "message": "Invalid JSON response",
             "raw": response.body
@@ -206,7 +193,6 @@ class ApiClient {
         "success": response.statusCode >= 200 && response.statusCode < 300,
       };
     } catch (e) {
-      debugPrint("GET ERROR: $e");
       return {
         "status": 0,
         "body": {"message": "Network error: $e"},
@@ -223,7 +209,6 @@ class ApiClient {
     String? token,
   }) async {
     final url = Uri.parse("$base$endpoint");
-    debugPrint("API DELETE: $url");
 
     final headers = {
       "User-Agent": _userAgent,
@@ -240,8 +225,6 @@ class ApiClient {
         try {
           decodedBody = jsonDecode(response.body);
         } catch (e) {
-          debugPrint("JSON Decode Error: $e");
-          debugPrint("Response body: ${response.body}");
           decodedBody = {
             "message": "Invalid JSON response",
             "raw": response.body
@@ -257,7 +240,6 @@ class ApiClient {
         "success": response.statusCode >= 200 && response.statusCode < 300,
       };
     } catch (e) {
-      debugPrint("DELETE ERROR: $e");
       return {
         "status": 0,
         "body": {"message": "Network error: $e"},
@@ -275,7 +257,6 @@ class ApiClient {
     String? token,
   }) async {
     final url = Uri.parse("$base$endpoint");
-    debugPrint("API PUT: $url");
 
     try {
       final headers = {
@@ -298,8 +279,6 @@ class ApiClient {
         try {
           decodedBody = jsonDecode(response.body);
         } catch (e) {
-          debugPrint("JSON Decode Error: $e");
-          debugPrint("Response body: ${response.body}");
           decodedBody = {
             "message": "Invalid JSON response",
             "raw": response.body
@@ -315,7 +294,6 @@ class ApiClient {
         "success": response.statusCode >= 200 && response.statusCode < 300,
       };
     } catch (e) {
-      debugPrint("PUT ERROR: $e");
       return {
         "status": 0,
         "body": {"message": "Network error: $e"},
