@@ -24,10 +24,11 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
     
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final logged = await auth.checkLogin();
     
     if (!mounted) return;
     
-    if (auth.isLoggedIn) {
+    if (logged) {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const DashboardShell()));
     } else {

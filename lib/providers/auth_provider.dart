@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/services/api_client.dart';
+import '../data/services/api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool sending = false;
@@ -24,6 +25,7 @@ class AuthProvider extends ChangeNotifier {
     email = prefs.getString("auth_email");
     userId = prefs.getString("user_id");
     isVerified = prefs.getBool("is_verified");
+    ApiService.setAuthToken(token);
     notifyListeners();
   }
 
@@ -98,6 +100,7 @@ class AuthProvider extends ChangeNotifier {
         userId = extractedUserId;
         email = extractedEmail ?? email;
         isVerified = extractedIsVerified;
+        ApiService.setAuthToken(token);
         
         notifyListeners();
         debugPrint("Auth data saved successfully");
@@ -110,11 +113,15 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove("auth_token");
+    await prefs.remove("user_id");
+    await prefs.remove("auth_email");
+    await prefs.remove("is_verified");
     token = null;
     email = null;
     userId = null;
     isVerified = null;
+    ApiService.setAuthToken(null);
     notifyListeners();
   }
 
@@ -125,6 +132,7 @@ class AuthProvider extends ChangeNotifier {
     email = prefs.getString("auth_email");
     userId = prefs.getString("user_id");
     isVerified = prefs.getBool("is_verified");
+    ApiService.setAuthToken(token);
     notifyListeners();
     return token != null && userId != null;
   }
