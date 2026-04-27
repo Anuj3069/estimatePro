@@ -1,0 +1,115 @@
+# name: estimate_pro
+# description: Estimate Pro - Construction Estimate Management App
+
+# publish_to: 'none'
+
+# version: 1.0.0+1
+
+# environment:
+#   sdk: '>=3.0.0 <4.0.0'
+
+# dependencies:
+#   flutter:
+#     sdk: flutter
+  
+#   # State management
+#   provider: ^6.1.1
+  
+#   # HTTP requests
+#   http: ^1.1.0
+  
+#   # Local storage
+#   shared_preferences: ^2.2.2
+  
+#   # Connectivity
+#   connectivity_plus: ^6.0.3
+  
+#   # URL launcher
+#   url_launcher: ^6.3.0
+  
+#   # File sharing
+#   share_plus: ^10.0.2
+  
+#   # Payment gateway
+#   flutter_cashfree_pg_sdk: ^2.2.10+48
+  
+#   # PIN code input
+#   pin_code_fields: ^8.0.1
+  
+#   # File path handling
+#   path_provider: ^2.1.1
+  
+#   # Icons
+#   cupertino_icons: ^1.0.2
+  
+#   # Animations
+#   lottie: ^3.1.0
+#   shimmer: ^3.0.0
+
+# dev_dependencies:
+#   flutter_test:
+#     sdk: flutter
+  
+#   flutter_lints: ^3.0.0
+
+# flutter:
+#   uses-material-design: true
+name: estimate_pro
+description: Estimate Pro - Construction Estimate Management App
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State management
+  provider: ^6.1.1
+  
+  # HTTP requests
+  http: ^1.1.0
+  
+  # Local storage
+  shared_preferences: ^2.2.2
+  
+  # Connectivity
+  connectivity_plus: ^6.0.3
+  
+  # URL launcher
+  url_launcher: ^6.3.0
+  
+  # File sharing
+  share_plus: ^10.0.2
+  
+  # Payment gateway
+  flutter_cashfree_pg_sdk: ^2.2.10+48
+  
+  # PIN code input
+  pin_code_fields: ^8.0.1
+  
+  # File path handling
+  path_provider: ^2.1.1
+
+  # File opener (Android FileProvider safe - fixes FileUriExposedException)
+  open_filex: ^4.5.0
+  
+  # Icons
+  cupertino_icons: ^1.0.2
+  
+  # Animations
+  lottie: ^3.1.0
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

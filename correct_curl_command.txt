@@ -1,0 +1,19 @@
+curl --location 'https://estimate-pro-backend.onrender.com/estimate/generate' \
+--header 'Content-Type: application/json' \
+--header 'userId: 6933d21edf36a3f5bbb7b965' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MzNkMjFlZGYzNmEzZjViYmI3Yjk2NSIsImlhdCI6MTc3NDMwMTk3OSwiZXhwIjoxNzc0OTA2Nzc5fQ.i_E6CkS4rwpL7b3XAHuiHOpD6yaCoZxizSiCqZWuumE' \
+--data '{
+        "dimensions": {
+          "length": 60,
+          "width": 40,
+          "groundFloor": 1800
+        },
+        "ownerDetails": {
+          "name": "Mr sufiyan Khan So Mr habib khan",
+          "address": "Plot - 101 ,Kh.no. - 4009/1 , Ward No. - 09 , kailsh Nagar , Kohka , Bhilai , Distt.- Durg (C.G.)"
+        },
+        "sheetType":"gf",
+        "floorType":"gf",
+        "totalArea":1800,
+        "totalAmount":2600000
+      }'
