@@ -2136,7 +2136,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -2188,6 +2187,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   final _widthCtrl = TextEditingController();
 
   // Floor data
+  static const int _maxFloorCount = 3;
   final List<FloorData> _floors = [];
 
   final List<Map<String, String>> _floorOptions = [
@@ -2231,13 +2231,13 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   String? _paymentError;
   String? _orderId;
 
-  // Auth token (kept for future use if needed)
-  String? _authToken;
-
   // Payment amount
   static const int _basePaymentAmount = 500;
 
   bool get _isOrderReviewMode => widget.initialOrder != null;
+  bool get _isPendingOrder =>
+      widget.initialOrder?['status']?.toString().toLowerCase() == 'pending';
+  bool get _canEditFields => !_isOrderReviewMode || _isPendingOrder;
 
   @override
   void initState() {
@@ -2247,7 +2247,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     } else {
       _addFloor(0);
     }
-    _loadAuthToken();
     _initCashfree();
   }
 
@@ -2293,11 +2292,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     return {};
-  }
-
-  Future<void> _loadAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _authToken = prefs.getString("auth_token");
   }
 
   void _initCashfree() {
@@ -2393,7 +2387,8 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     return ground.isNotEmpty ? ground.first.builtUpArea : 0;
   }
 
-  bool get _canAddMoreFloors => _floors.length < _floorOptions.length;
+  bool get _canAddMoreFloors =>
+      _floors.length < _maxFloorCount && _floors.length < _floorOptions.length;
 
   int? get _nextFloorIndex {
     for (int i = 0; i < _floorOptions.length; i++) {
@@ -2405,6 +2400,12 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   }
 
   void _addFloor(int index) {
+    if (!_canAddMoreFloors) {
+      _showSnackBar(
+          'Limit Reached', 'You can add a maximum of 3 floors.', Colors.orange);
+      return;
+    }
+
     if (index < _floorOptions.length) {
       setState(() {
         _floors.add(FloorData(
@@ -3293,7 +3294,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                       Expanded(
                         child: TextFormField(
                           controller: _lengthCtrl,
-                          enabled: !_isOrderReviewMode,
+                          enabled: _canEditFields,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           inputFormatters: [
@@ -3317,7 +3318,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                       Expanded(
                         child: TextFormField(
                           controller: _widthCtrl,
-                          enabled: !_isOrderReviewMode,
+                          enabled: _canEditFields,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           inputFormatters: [
@@ -3367,7 +3368,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
             children: [
               const Text('Floor-wise Built-up Area',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              if (!_isOrderReviewMode &&
+              if (_canEditFields &&
                   _canAddMoreFloors &&
                   _nextFloorIndex != null)
                 TextButton.icon(
@@ -3434,7 +3435,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: floor.areaCtrl,
-                    enabled: !_isOrderReviewMode,
+                    enabled: _canEditFields,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -3460,7 +3461,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                 ],
               ),
             ),
-            if (!_isOrderReviewMode && !isGround)
+            if (_canEditFields && !isGround)
               IconButton(
                   onPressed: () => _removeFloor(index),
                   icon: const Icon(Icons.close, color: Colors.red, size: 20)),
@@ -3485,6 +3486,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           if (_isOrderReviewMode) ...[
             TextFormField(
               controller: _ownerNameCtrl,
+              enabled: _canEditFields,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Name *',
@@ -3582,6 +3584,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _ownerAddressCtrl,
+            enabled: _canEditFields,
             maxLines: 3,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
@@ -3629,7 +3632,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _totalAmountCtrl,
-                    enabled: !_isOrderReviewMode,
+                    enabled: _canEditFields,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [

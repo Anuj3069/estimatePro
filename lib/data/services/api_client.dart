@@ -48,7 +48,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Fixed & production-ready ApiClient for your Render backend
@@ -134,7 +133,9 @@ class ApiClient {
           return result;
         }
       } on TimeoutException {
+        // Retry after the delay below.
       } catch (e) {
+        // Retry after the delay below.
       }
 
       // Wait before next attempt (except after the last one)
