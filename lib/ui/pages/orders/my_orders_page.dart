@@ -46,12 +46,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
-
       final response = await ApiClient.get(
         '/orders/order/user/${auth.userId}',
         token: auth.token,
       );
-
 
       if (response['success'] == true && response['status'] == 200) {
         final responseBody = response['body'];
@@ -76,14 +74,14 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
               }
             }
           }
-        } catch (e) {
+        } catch (_) {
+          ordersList = [];
         }
 
         setState(() {
           orders = ordersList;
           isLoading = false;
         });
-
       } else {
         final errorMsg = response['body']?['message'] ??
             response['body']?.toString() ??
@@ -110,13 +108,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     });
 
     try {
-
       // Add DELETE method to ApiClient
       final response = await ApiClient.delete(
         '/orders/order/$orderId',
         token: auth.token,
       );
-
 
       if (response['success'] == true) {
         setState(() {
@@ -169,8 +165,9 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
   Future<void> _updateOwnerDetails(
     dynamic order, {
-    required String name,
-    required String address,
+    String? name,
+    String? address,
+    required String amount,
   }) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final orderId = order['_id']?.toString();
@@ -192,13 +189,24 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
     try {
       final existingInputs = Map<String, dynamic>.from(order['inputs'] ?? {});
+      final existingOwner = _asMap(
+        existingInputs['ownerDetais'] ?? existingInputs['ownerDetails'],
+      );
+      final existingPayment = _asMap(order['payment']);
+      final parsedAmount = double.tryParse(amount.trim()) ?? 0;
       final updateData = {
         'inputs': {
           ...existingInputs,
+          'totalAmount': parsedAmount,
           'ownerDetais': {
-            'name': name.trim(),
-            'address': address.trim(),
+            ...existingOwner,
+            if (name != null) 'name': name.trim(),
+            if (address != null) 'address': address.trim(),
           },
+        },
+        'payment': {
+          ...existingPayment,
+          'amount': parsedAmount,
         },
       };
 
@@ -212,7 +220,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Owner details updated successfully'),
+              content: Text('Order details updated successfully'),
               backgroundColor: Colors.green,
             ),
           );
@@ -521,10 +529,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
         final order = orders[index];
         return _OrderCard(
           order: order,
-          onEdit: (name, address) => _updateOwnerDetails(
+          onEdit: ({name, address, required amount}) => _updateOwnerDetails(
             order,
             name: name,
             address: address,
+            amount: amount,
           ),
           onDownload: () => _downloadOrderPdf(order),
           onOpenPendingOrder: () => _openPendingOrderForm(order),
@@ -537,7 +546,11 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
 
 class _OrderCard extends StatefulWidget {
   final dynamic order;
-  final Future<void> Function(String name, String address) onEdit;
+  final Future<void> Function({
+    String? name,
+    String? address,
+    required String amount,
+  }) onEdit;
   final Future<void> Function() onDownload;
   final Future<void> Function() onOpenPendingOrder;
   final VoidCallback onDelete;
@@ -564,10 +577,12 @@ class _OrderCardState extends State<_OrderCard> {
     final status = order['status'] ?? 'Unknown';
     final createdAt = order['createdAt'] ?? '';
     final payment = order['payment'] ?? {};
-    final totalAmount = payment['amount'] ?? 0.0;
+    final inputs = order['inputs'] ?? {};
+    final totalAmount = inputs is Map && inputs['totalAmount'] != null
+        ? inputs['totalAmount']
+        : payment['amount'] ?? 0.0;
     final requestType = order['requestType'] ?? 'Unknown';
     final date = order['date'] ?? '';
-    final inputs = order['inputs'] ?? {};
     final ownerDetails = _ownerDetails(inputs);
     final ownerName = ownerDetails['name']?.toString() ?? 'Unknown owner';
     final normalizedStatus = status.toString().toUpperCase();
@@ -776,11 +791,23 @@ class _OrderCardState extends State<_OrderCard> {
     Map<String, dynamic> ownerDetails,
   ) {
     final formKey = GlobalKey<FormState>();
+    var changeField = 'name';
     final nameController = TextEditingController(
       text: ownerDetails['name']?.toString() ?? '',
     );
     final addressController = TextEditingController(
       text: ownerDetails['address']?.toString() ?? '',
+    );
+    final inputs = widget.order is Map ? widget.order['inputs'] : {};
+    final payment = widget.order is Map ? widget.order['payment'] : {};
+    final amountController = TextEditingController(
+      text: (inputs is Map && inputs['totalAmount'] != null
+                  ? inputs['totalAmount']
+                  : payment is Map
+                      ? payment['amount']
+                      : null)
+              ?.toString() ??
+          '',
     );
     var isSaving = false;
 
@@ -794,33 +821,80 @@ class _OrderCardState extends State<_OrderCard> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: nameController,
+                DropdownButtonFormField<String>(
+                  initialValue: changeField,
                   decoration: const InputDecoration(
-                    labelText: 'Name',
+                    labelText: 'Change',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person_outline),
+                    prefixIcon: Icon(Icons.edit_outlined),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter name';
-                    }
-                    return null;
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'name',
+                      child: Text('Owner name'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'address',
+                      child: Text('Address'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() => changeField = value);
                   },
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Address',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on_outlined),
+                if (changeField == 'name')
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Owner Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    validator: (value) {
+                      if (changeField == 'name' &&
+                          (value == null || value.trim().length < 3)) {
+                        return 'Please enter owner name';
+                      }
+                      return null;
+                    },
+                  )
+                else
+                  TextFormField(
+                    controller: addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                    minLines: 2,
+                    maxLines: 4,
+                    validator: (value) {
+                      if (changeField == 'address' &&
+                          (value == null || value.trim().length < 10)) {
+                        return 'Please enter complete address';
+                      }
+                      return null;
+                    },
                   ),
-                  minLines: 2,
-                  maxLines: 4,
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: amountController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.currency_rupee),
+                    prefixText: 'Rs. ',
+                  ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter address';
+                      return 'Please enter amount';
+                    }
+                    if (double.tryParse(value.trim()) == null) {
+                      return 'Please enter a valid amount';
                     }
                     return null;
                   },
@@ -842,8 +916,12 @@ class _OrderCardState extends State<_OrderCard> {
                         isSaving = true;
                       });
                       await widget.onEdit(
-                        nameController.text,
-                        addressController.text,
+                        name:
+                            changeField == 'name' ? nameController.text : null,
+                        address: changeField == 'address'
+                            ? addressController.text
+                            : null,
+                        amount: amountController.text,
                       );
                       if (ctx.mounted) {
                         Navigator.pop(ctx);
@@ -863,6 +941,7 @@ class _OrderCardState extends State<_OrderCard> {
     ).whenComplete(() {
       nameController.dispose();
       addressController.dispose();
+      amountController.dispose();
     });
   }
 

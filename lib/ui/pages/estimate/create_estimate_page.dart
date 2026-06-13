@@ -78,9 +78,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   // Total Amount field
   final _totalAmountCtrl = TextEditingController();
 
-  // Category only (no interior work)
-  final String _selectedCategory = 'A';
-
   // Form keys
   final _propertyFormKey = GlobalKey<FormState>();
   final _ownerFormKey = GlobalKey<FormState>();
@@ -238,14 +235,8 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   // CALCULATIONS
   // ═══════════════════════════════════════════════════════════════════════
 
-  // Base rate per sqft
-  double get _baseRatePerSqft => _selectedCategory == 'A' ? 2000 : 1800;
-
   double get _totalArea =>
       _floors.fold(0, (sum, floor) => sum + floor.builtUpArea);
-
-  // Total estimate (no interior charges)
-  double get _totalEstimate => _totalArea * _baseRatePerSqft;
 
   double get _length => double.tryParse(_lengthCtrl.text) ?? 0;
   double get _width => double.tryParse(_widthCtrl.text) ?? 0;
@@ -1023,14 +1014,36 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   // ═══════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Estimate'), elevation: 0),
-      body: Column(
-        children: [
-          _buildStepIndicator(),
-          Expanded(child: _buildCurrentStep()),
-          _buildBottomNav(),
-        ],
+    return PopScope(
+      canPop: _currentStep == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentStep > 0) {
+          _goToPreviousStep();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Estimate'),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (_currentStep > 0) {
+                _goToPreviousStep();
+              } else {
+                Navigator.pop(context);
+              }
+            },
+          ),
+        ),
+        body: Column(
+          children: [
+            _buildStepIndicator(),
+            Expanded(child: _buildCurrentStep()),
+            _buildBottomNav(),
+          ],
+        ),
       ),
     );
   }
@@ -1209,10 +1222,15 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                           Icon(Icons.info_outline,
                               color: Colors.blue.shade700, size: 18),
                           const SizedBox(width: 8),
-                          Text('Max Area: ${_maxArea.toStringAsFixed(0)} sqft',
+                          Expanded(
+                            child: Text(
+                              'Plot area: Length x Width = ${_length.toStringAsFixed(0)} x ${_width.toStringAsFixed(0)} = ${_maxArea.toStringAsFixed(0)} sqft',
                               style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w500)),
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1307,7 +1325,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                       isDense: true,
                       helperText: isGround
                           ? (_maxArea > 0
-                              ? 'Max: ${_maxArea.toStringAsFixed(0)}'
+                              ? 'Use Length x Width or enter built-up area'
                               : null)
                           : (_groundFloorArea > 0
                               ? 'Max: ${_groundFloorArea.toStringAsFixed(0)}'
@@ -1361,7 +1379,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               controller: _ownerFirstNameCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
-                labelText: 'Name *',
+                labelText: 'Owner Name *',
                 hintText: 'e.g., Sufiyan',
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
@@ -1396,7 +1414,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               controller: _ownerRelativeNameCtrl,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
-                labelText: 'Name *',
+                labelText: 'Father/Husband Name *',
                 hintText: 'e.g., Riyaz',
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
@@ -1574,7 +1592,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         const Text('Review Your Estimate',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-
         _buildReviewCard(
           'Property Details',
           Icons.home_work,
@@ -1592,9 +1609,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                 isBold: true, color: Colors.green),
           ],
         ),
-
         const SizedBox(height: 12),
-
         _buildReviewCard(
           'Owner Details',
           Icons.person,
@@ -1606,9 +1621,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
             _reviewRow('Address', _ownerAddressCtrl.text.trim()),
           ],
         ),
-
         const SizedBox(height: 12),
-
         _buildReviewCard(
           'Total Amount',
           Icons.currency_rupee,
@@ -1618,54 +1631,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                 isBold: true, color: Colors.green),
           ],
         ),
-
-        const SizedBox(height: 20),
-
-        // Cost Breakdown
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: [Colors.green.shade400, Colors.green.shade600]),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              const Text('Cost Breakdown',
-                  style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 12),
-              _costRow(
-                  'Base Cost (${_totalArea.toStringAsFixed(0)} sqft × ₹${_baseRatePerSqft.toInt()})',
-                  _totalEstimate),
-              const Divider(color: Colors.white30, height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Estimate',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                  Text('₹ ${_formatNumber(_totalEstimate)}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _costRow(String label, double amount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 13)),
-        Text('₹ ${_formatNumber(amount)}',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w500)),
       ],
     );
   }
