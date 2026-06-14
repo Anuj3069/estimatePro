@@ -791,12 +791,8 @@ class _OrderCardState extends State<_OrderCard> {
     Map<String, dynamic> ownerDetails,
   ) {
     final formKey = GlobalKey<FormState>();
-    var changeField = 'name';
     final nameController = TextEditingController(
       text: ownerDetails['name']?.toString() ?? '',
-    );
-    final addressController = TextEditingController(
-      text: ownerDetails['address']?.toString() ?? '',
     );
     final inputs = widget.order is Map ? widget.order['inputs'] : {};
     final payment = widget.order is Map ? widget.order['payment'] : {};
@@ -815,69 +811,26 @@ class _OrderCardState extends State<_OrderCard> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Edit Owner Details'),
+          title: const Text('Edit Details'),
           content: Form(
             key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<String>(
-                  initialValue: changeField,
+                TextFormField(
+                  controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Change',
+                    labelText: 'Owner Name',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit_outlined),
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'name',
-                      child: Text('Owner name'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'address',
-                      child: Text('Address'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setDialogState(() => changeField = value);
+                  validator: (value) {
+                    if (value == null || value.trim().length < 3) {
+                      return 'Please enter owner name';
+                    }
+                    return null;
                   },
                 ),
-                const SizedBox(height: 12),
-                if (changeField == 'name')
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Owner Name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (value) {
-                      if (changeField == 'name' &&
-                          (value == null || value.trim().length < 3)) {
-                        return 'Please enter owner name';
-                      }
-                      return null;
-                    },
-                  )
-                else
-                  TextFormField(
-                    controller: addressController,
-                    decoration: const InputDecoration(
-                      labelText: 'Address',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                    ),
-                    minLines: 2,
-                    maxLines: 4,
-                    validator: (value) {
-                      if (changeField == 'address' &&
-                          (value == null || value.trim().length < 10)) {
-                        return 'Please enter complete address';
-                      }
-                      return null;
-                    },
-                  ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
@@ -916,11 +869,8 @@ class _OrderCardState extends State<_OrderCard> {
                         isSaving = true;
                       });
                       await widget.onEdit(
-                        name:
-                            changeField == 'name' ? nameController.text : null,
-                        address: changeField == 'address'
-                            ? addressController.text
-                            : null,
+                        name: nameController.text,
+                        address: null,
                         amount: amountController.text,
                       );
                       if (ctx.mounted) {
@@ -940,7 +890,6 @@ class _OrderCardState extends State<_OrderCard> {
       ),
     ).whenComplete(() {
       nameController.dispose();
-      addressController.dispose();
       amountController.dispose();
     });
   }

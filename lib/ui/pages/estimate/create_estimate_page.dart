@@ -53,6 +53,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   // Property dimensions
   final _lengthCtrl = TextEditingController();
   final _widthCtrl = TextEditingController();
+  final _plotAreaCtrl = TextEditingController();
 
   // Floor data
   static const int _maxFloorCount = 3;
@@ -70,7 +71,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   final _ownerNameCtrl = TextEditingController();
   final _ownerFirstNameCtrl = TextEditingController();
   final _ownerRelativeNameCtrl = TextEditingController();
-  final _ownerSurnameCtrl = TextEditingController();
   final _ownerAddressCtrl = TextEditingController();
   final _ownerPhoneCtrl = TextEditingController();
   String _ownerRelation = 'S/o';
@@ -122,8 +122,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         _asMap(inputs['ownerDetais'] ?? inputs['ownerDetails']);
 
     _existingEstimateId = inputs['estimateId']?.toString();
-    _lengthCtrl.text = dimensions['length']?.toString() ?? '';
-    _widthCtrl.text = dimensions['width']?.toString() ?? '';
+    _lengthCtrl.text = _fieldText(dimensions['length']);
+    _widthCtrl.text = _fieldText(dimensions['width']);
+    _plotAreaCtrl.text = _fieldText(dimensions['plotArea']);
     _ownerNameCtrl.text = ownerDetails['name']?.toString() ?? '';
     _ownerFirstNameCtrl.text = _ownerNameCtrl.text;
     _ownerAddressCtrl.text = ownerDetails['address']?.toString() ?? '';
@@ -159,6 +160,12 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     return {};
   }
 
+  String _fieldText(dynamic value) {
+    if (value == null) return '';
+    final text = value.toString();
+    return text.toLowerCase() == 'na' ? '' : text;
+  }
+
   void _initCashfree() {
     // Cashfree initialization - will be done when needed
   }
@@ -167,6 +174,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   void dispose() {
     _lengthCtrl.dispose();
     _widthCtrl.dispose();
+    _plotAreaCtrl.dispose();
     _totalAmountCtrl.dispose();
     for (var floor in _floors) {
       floor.dispose();
@@ -174,7 +182,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     _ownerNameCtrl.dispose();
     _ownerFirstNameCtrl.dispose();
     _ownerRelativeNameCtrl.dispose();
-    _ownerSurnameCtrl.dispose();
     _ownerAddressCtrl.dispose();
     _ownerPhoneCtrl.dispose();
     super.dispose();
@@ -214,10 +221,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
   double get _maximumTotalAmount => _totalArea * 2600;
 
-  bool get _isTotalAmountInRange =>
-      _totalAmount >= _minimumTotalAmount &&
-      _totalAmount <= _maximumTotalAmount;
-
   void _syncOwnerName() {
     if (_isOrderReviewMode) return;
 
@@ -225,7 +228,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
       _ownerFirstNameCtrl.text.trim(),
       _ownerRelation,
       _ownerRelativeNameCtrl.text.trim(),
-      _ownerSurnameCtrl.text.trim(),
     ].where((part) => part.isNotEmpty).join(' ');
 
     _ownerNameCtrl.text = parts;
@@ -240,7 +242,14 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
   double get _length => double.tryParse(_lengthCtrl.text) ?? 0;
   double get _width => double.tryParse(_widthCtrl.text) ?? 0;
-  double get _maxArea => _length * _width;
+  double get _enteredPlotArea => double.tryParse(_plotAreaCtrl.text) ?? 0;
+  double get _calculatedPlotArea =>
+      _length > 0 && _width > 0 ? _length * _width : 0;
+  double get _maxArea =>
+      _enteredPlotArea > 0 ? _enteredPlotArea : _calculatedPlotArea;
+  dynamic get _plotAreaPayload => _maxArea > 0 ? _maxArea : 'Na';
+  dynamic get _lengthPayload => _length > 0 ? _length : 'Na';
+  dynamic get _widthPayload => _width > 0 ? _width : 'Na';
 
   double get _groundFloorArea {
     final ground = _floors.where((f) => f.floorKey == 'groundFloor').toList();
@@ -492,13 +501,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
   List<String> _validatePropertyStep() {
     List<String> errors = [];
 
-    if (_lengthCtrl.text.isEmpty || _length <= 0) {
-      errors.add('Enter valid length');
-    }
-    if (_widthCtrl.text.isEmpty || _width <= 0) {
-      errors.add('Enter valid width');
-    }
-
     if (_floors.isEmpty) {
       errors.add('At least Ground Floor is required');
       return errors;
@@ -539,10 +541,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
       if (_ownerRelativeNameCtrl.text.trim().length < 2) {
         errors.add('Enter valid father/husband name');
       }
-
-      if (_ownerSurnameCtrl.text.trim().length < 2) {
-        errors.add('Enter valid surname');
-      }
     }
 
     final phoneError = _validatePhone(_ownerPhoneCtrl.text);
@@ -554,15 +552,60 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
       errors.add('Enter complete address (min 10 characters)');
     }
 
-    final amountError = _validateTotalAmount(_totalAmountCtrl.text);
-    if (amountError != null) {
-      errors.add(amountError);
-    }
-
     return errors;
   }
 
-  void _goToNextStep() {
+  Future<bool> _showTotalAmountDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            final formKey = GlobalKey<FormState>();
+            return AlertDialog(
+              title: const Text('Total Amount'),
+              content: Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: _totalAmountCtrl,
+                  enabled: _canEditFields,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Total Amount *',
+                    hintText:
+                        'Rs. ${_formatNumber(_minimumTotalAmount)} - Rs. ${_formatNumber(_maximumTotalAmount)}',
+                    prefixIcon: const Icon(Icons.currency_rupee_outlined),
+                    prefixText: 'Rs. ',
+                    border: const OutlineInputBorder(),
+                    helperText:
+                        'Min: Rs. ${_formatNumber(_minimumTotalAmount)} | Max: Rs. ${_formatNumber(_maximumTotalAmount)}',
+                  ),
+                  validator: _validateTotalAmount,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (!(formKey.currentState?.validate() ?? false)) return;
+                    Navigator.pop(ctx, true);
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Future<void> _goToNextStep() async {
     if (_currentStep == 0) {
       final errors = _validatePropertyStep();
       if (errors.isNotEmpty) {
@@ -578,6 +621,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         return;
       }
       if (!(_ownerFormKey.currentState?.validate() ?? false)) return;
+      final hasAmount = await _showTotalAmountDialog();
+      if (!hasAmount) return;
+      if (!mounted) return;
       setState(() => _currentStep = 2);
     } else if (_currentStep == 2) {
       setState(() => _currentStep = 3);
@@ -727,9 +773,13 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
         if (isPaymentSuccessful) {
           setState(() {
             _paymentSuccess = true;
+            _paymentId = data['payment_id']?.toString() ??
+                data['paymentId']?.toString() ??
+                data['cf_payment_id']?.toString();
             _paymentError = null;
             _isPaymentProcessing = false;
           });
+          _returnToFrontPageAfterPayment();
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -764,6 +814,13 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
     }
   }
 
+  void _returnToFrontPageAfterPayment() {
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!mounted || !_paymentSuccess) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   // GENERATE ESTIMATE
   // ═══════════════════════════════════════════════════════════════════════
@@ -780,7 +837,11 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
 
     try {
       _syncOwnerName();
-      Map<String, dynamic> dimensions = {'length': _length, 'width': _width};
+      Map<String, dynamic> dimensions = {
+        'length': _lengthPayload,
+        'width': _widthPayload,
+        'plotArea': _plotAreaPayload,
+      };
       for (var floor in _floors) {
         dimensions[floor.floorKey] = floor.builtUpArea;
       }
@@ -1174,13 +1235,8 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                                 RegExp(r'^\d*\.?\d*'))
                           ],
                           decoration: const InputDecoration(
-                              labelText: 'Length (ft) *',
+                              labelText: 'Length (ft) optional',
                               border: OutlineInputBorder()),
-                          validator: (v) => (v == null ||
-                                  v.isEmpty ||
-                                  (double.tryParse(v) ?? 0) <= 0)
-                              ? 'Required'
-                              : null,
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
@@ -1198,19 +1254,30 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                                 RegExp(r'^\d*\.?\d*'))
                           ],
                           decoration: const InputDecoration(
-                              labelText: 'Width (ft) *',
+                              labelText: 'Width (ft) optional',
                               border: OutlineInputBorder()),
-                          validator: (v) => (v == null ||
-                                  v.isEmpty ||
-                                  (double.tryParse(v) ?? 0) <= 0)
-                              ? 'Required'
-                              : null,
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
                     ],
                   ),
-                  if (_maxArea > 0) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _plotAreaCtrl,
+                    enabled: _canEditFields,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Plot Area (sqft)',
+                      suffixText: 'sqft',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  if (_calculatedPlotArea > 0 || _enteredPlotArea > 0) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -1224,7 +1291,9 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Plot area: Length x Width = ${_length.toStringAsFixed(0)} x ${_width.toStringAsFixed(0)} = ${_maxArea.toStringAsFixed(0)} sqft',
+                              _enteredPlotArea > 0
+                                  ? 'Plot area: ${_enteredPlotArea.toStringAsFixed(0)} sqft'
+                                  : 'Calculated plot area: ${_length.toStringAsFixed(0)} x ${_width.toStringAsFixed(0)} = ${_calculatedPlotArea.toStringAsFixed(0)} sqft',
                               style: TextStyle(
                                 color: Colors.blue.shade700,
                                 fontWeight: FontWeight.w500,
@@ -1380,7 +1449,7 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Owner Name *',
-                hintText: 'e.g., Sufiyan',
+                hintText: 'e.g., Aamir',
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
               ),
@@ -1415,27 +1484,12 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Father/Husband Name *',
-                hintText: 'e.g., Riyaz',
+                hintText: 'e.g., Iqbal',
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
               ),
               validator: (v) => (v == null || v.trim().length < 2)
                   ? 'Enter valid name'
-                  : null,
-              onChanged: (_) => _syncOwnerName(),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _ownerSurnameCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Surname *',
-                hintText: 'e.g., Khan',
-                prefixIcon: Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v == null || v.trim().length < 2)
-                  ? 'Enter valid surname'
                   : null,
               onChanged: (_) => _syncOwnerName(),
             ),
@@ -1478,105 +1532,6 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
                 ? 'Enter complete address'
                 : null,
           ),
-          const SizedBox(height: 24),
-
-          // Total Amount Field
-          Card(
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Icon(Icons.currency_rupee,
-                            color: Colors.green.shade700, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text('Total Amount',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _totalAmountCtrl,
-                    enabled: _canEditFields,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Total Amount *',
-                      hintText:
-                          'Enter amount between Rs. ${_formatNumber(_minimumTotalAmount)} - Rs. ${_formatNumber(_maximumTotalAmount)}',
-                      prefixIcon: const Icon(Icons.currency_rupee_outlined),
-                      prefixText: 'Rs. ',
-                      border: const OutlineInputBorder(),
-                      helperText:
-                          'Minimum: Rs. ${_formatNumber(_minimumTotalAmount)} | Maximum: Rs. ${_formatNumber(_maximumTotalAmount)}',
-                      helperStyle: const TextStyle(color: Colors.green),
-                    ),
-                    validator: _validateTotalAmount,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  if (_totalAmount > 0) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _isTotalAmountInRange
-                            ? Colors.green.shade50
-                            : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _isTotalAmountInRange
-                              ? Colors.green.shade200
-                              : Colors.red.shade200,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isTotalAmountInRange
-                                ? Icons.check_circle_outline
-                                : Icons.error_outline,
-                            color: _isTotalAmountInRange
-                                ? Colors.green.shade700
-                                : Colors.red.shade700,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _isTotalAmountInRange
-                                  ? 'Valid amount: Rs. ${_formatNumber(_totalAmount)}'
-                                  : 'Amount must be between Rs. ${_formatNumber(_minimumTotalAmount)} - Rs. ${_formatNumber(_maximumTotalAmount)}',
-                              style: TextStyle(
-                                color: _isTotalAmountInRange
-                                    ? Colors.green.shade700
-                                    : Colors.red.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1597,9 +1552,14 @@ class _CreateEstimatePageState extends State<CreateEstimatePage> {
           Icons.home_work,
           Colors.purple,
           [
-            _reviewRow('Dimensions',
-                '${_length.toStringAsFixed(0)} × ${_width.toStringAsFixed(0)} ft'),
-            _reviewRow('Plot Area', '${_maxArea.toStringAsFixed(0)} sqft'),
+            _reviewRow('Length',
+                _length > 0 ? '${_length.toStringAsFixed(0)} ft' : 'Na'),
+            _reviewRow(
+                'Width', _width > 0 ? '${_width.toStringAsFixed(0)} ft' : 'Na'),
+            _reviewRow(
+              'Plot Area',
+              _maxArea > 0 ? '${_maxArea.toStringAsFixed(0)} sqft' : 'Na',
+            ),
             const Divider(),
             ..._floors.map((f) => _reviewRow(
                 f.floorType, '${f.builtUpArea.toStringAsFixed(0)} sqft')),

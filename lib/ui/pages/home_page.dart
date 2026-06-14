@@ -357,7 +357,7 @@ class _InstructionPage extends StatelessWidget {
         padding: EdgeInsets.all(20),
         child: Center(
           child: Text(
-            'Is document ke liye aap diye hue mobile number par contact kar ke banwa sakte hain. Details WhatsApp kariye, within 1 working day aapko mil jaayega.',
+            'To get this document prepared, contact us on the mobile number provided and share the required details on WhatsApp. Your document will be ready within 1 working day.',
             style: TextStyle(fontSize: 16, height: 1.5),
             textAlign: TextAlign.center,
           ),
